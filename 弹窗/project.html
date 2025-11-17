@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<!-- 声明 HTML5 文档类型 -->
+<html lang="zh-CN">
+<!-- 设置页面语言为简体中文 -->
+<head>
+  <meta charset="UTF-8" />
+  <!-- 指定字符编码为 UTF-8，支持中文 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <!-- 适配移动设备：宽度等于设备宽度，初始缩放1倍，禁止用户手动缩放 -->
+  <title>💌 温馨语录 · 点击重播</title>
+  <!-- 浏览器标签页标题 -->
+  <style>
+    /* 全局样式重置 */
+    * {
+      margin: 0;            /* 所有元素外边距归零 */
+      padding: 0;           /* 所有元素内边距归零 */
+      box-sizing: border-box; /* 盒模型包含 border 和 padding，避免尺寸计算混乱 */
+    }
+    body {
+      height: 100vh;        /* 高度占满整个视口 */
+      background: linear-gradient(135deg, #e0f7fa, #f8bbd0); /* 背景渐变色：浅蓝到粉红 */
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif; /* 字体优先使用苹方，其次微软雅黑 */
+      overflow: hidden;     /* 隐藏滚动条，防止弹窗溢出产生滚动 */
+      position: relative;   /* 为子元素 absolute 定位提供参考 */
+    }
+    .popup {
+      position: absolute;   /* 绝对定位，可自由放置在屏幕任意位置 */
+      width: 260px;         /* 弹窗固定宽度 */
+      border-radius: 10px;  /* 圆角边框 */
+      padding: 16px;        /* 内边距 */
+      text-align: center;   /* 文字居中 */
+      box-shadow: 0 3px 12px rgba(0,0,0,0.12); /* 轻微阴影，增加立体感 */
+      z-index: 10;          /* 层级高于背景，低于提示层 */
+      animation: fadeIn 0.2s ease-out; /* 应用淡入动画 */
+    }
+    @keyframes fadeIn {
+      /* 定义淡入动画 */
+      from { opacity: 0; transform: scale(0.7); } /* 初始：透明且缩小 */
+      to { opacity: 1; transform: scale(1); }     /* 结束：不透明且正常大小 */
+    }
+    .content {
+      padding: 12px;                /* 内容区域内边距 */
+      border-radius: 6px;           /* 内容区域圆角 */
+      font-size: 16px;              /* 字体大小 */
+      font-weight: bold;            /* 加粗 */
+      min-height: 50px;             /* 最小高度，避免文字少时太矮 */
+      margin-bottom: 12px;          /* 与按钮的间距 */
+      color: white;                 /* 白色文字 */
+      word-break: break-word;       /* 长词自动换行 */
+    }
+    .ok-btn {
+      background: rgba(255,255,255,0.95); /* 半透明白色背景 */
+      color: #ff6b9d;               /* 按钮文字颜色：粉红 */
+      border: none;                 /* 无边框 */
+      padding: 6px 18px;            /* 内边距 */
+      font-size: 14px;              /* 字体大小 */
+      border-radius: 5px;           /* 小圆角 */
+      cursor: pointer;              /* 鼠标悬停显示手型 */
+      font-weight: bold;            /* 加粗 */
+    }
+    .fragment {
+      position: absolute;           /* 心形碎片绝对定位 */
+      pointer-events: none;         /* 不响应鼠标事件，避免干扰点击 */
+      z-index: 5;                   /* 层级低于弹窗，避免遮挡按钮 */
+      font-size: 18px;              /* 心形图标大小 */
+    }
+
+    /* 重启提示层样式 */
+    #restart-prompt {
+      position: fixed;              /* 固定定位，覆盖整个屏幕 */
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 250, 250, 0.85); /* 半透明浅粉色背景 */
+      display: flex;                /* 使用弹性布局居中内容 */
+      flex-direction: column;       /* 子元素垂直排列 */
+      justify-content: center;      /* 垂直居中 */
+      align-items: center;          /* 水平居中 */
+      z-index: 100;                 /* 层级最高，覆盖所有内容 */
+      opacity: 0;                   /* 初始完全透明 */
+      pointer-events: none;         /* 初始不响应点击 */
+      transition: opacity 0.4s ease; /* 透明度变化带动画 */
+    }
+    #restart-prompt.show {
+      opacity: 1;                   /* 添加 show 类后变为不透明 */
+      pointer-events: all;          /* 可点击 */
+    }
+    #restart-text {
+      font-size: 20px;              /* 提示文字大小 */
+      color: #ff6b9d;               /* 粉红色 */
+      margin-bottom: 20px;          /* 与按钮间距 */
+      text-align: center;           /* 文字居中 */
+      font-weight: bold;            /* 加粗 */
+      text-shadow: 0 1px 2px rgba(0,0,0,0.1); /* 轻微文字阴影 */
+    }
+    #restart-btn {
+      background: #ff6b9d;          /* 按钮背景色 */
+      color: white;                 /* 白色文字 */
+      border: none;                 /* 无边框 */
+      padding: 12px 30px;           /* 内边距 */
+      font-size: 18px;              /* 大字体 */
+      border-radius: 50px;          /* 超大圆角（接近胶囊） */
+      cursor: pointer;              /* 手型光标 */
+      font-weight: bold;            /* 加粗 */
+      box-shadow: 0 4px 12px rgba(255, 107, 157, 0.4); /* 柔和阴影 */
+      transition: transform 0.2s, box-shadow 0.2s; /* 缩放和阴影带动画 */
+    }
+    #restart-btn:hover {
+      transform: scale(1.05);       /* 鼠标悬停轻微放大 */
+      box-shadow: 0 6px 16px rgba(255, 107, 157, 0.6); /* 阴影加深 */
+    }
+  </style>
+</head>
+<body>
+
+<!-- 重启提示层，默认隐藏 -->
+<div id="restart-prompt">
+  <div id="restart-text">再看一遍？<br>点击 anywhere 💖</div>
+  <button id="restart-btn">再看一次</button>
+</div>
+
+<script>
+  // 温馨语录数组
+  const tips = [
+    '人山人海 如约而至',
+    '青龙岂是池中物',
+    '清河海风 溶溶月色',
+    '永恒荣耀 不灭星辰',
+    '论实力我不曾输过 论成绩我依然站在这里',
+    '融融呐',
+    '共赏之人 就在身侧',
+    '一起到达胜利的终点'
+  ];
+
+  // 背景色数组，每个弹窗随机选一种
+  const bgColors = [
+    '#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0',
+    '#118AB2', '#EF476F', '#A0E7E5', '#9C89B8', '#FF9AA2', '#B5EAD7'
+  ];
+
+  // 配置参数
+  const MAX_POPUPS = 100;            // 每轮弹窗数量
+  const INTERVAL = 100;             // 弹出间隔（毫秒）
+  const SHOW_DURATION = 3000;       // 全部弹出后展示时间（毫秒）
+  const DISAPPEAR_INTERVAL = 50;   // 消失时每个弹窗的间隔（毫秒）
+
+  let currentPopups = [];           // 存储当前轮次所有弹窗的引用
+  const restartPrompt = document.getElementById('restart-prompt'); // 获取提示层 DOM
+  const restartBtn = document.getElementById('restart-btn');       // 获取按钮 DOM
+
+  // 爆炸消失函数
+  function explode(popup, onComplete) {
+    // 从 currentPopups 中移除该弹窗
+    const index = currentPopups.indexOf(popup);
+    if (index > -1) currentPopups.splice(index, 1);
+
+    // 获取弹窗中心坐标（用于心形飞散起点）
+    const rect = popup.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    // 快速淡出并缩小
+    popup.style.transition = 'all 0.15s';
+    popup.style.opacity = '0';
+    popup.style.transform = 'scale(0.5)';
+    setTimeout(() => {
+      if (popup.parentNode) popup.remove(); // 从 DOM 移除
+      if (onComplete) onComplete();         // 执行回调（如计数）
+    }, 150);
+
+    // 创建心形碎片
+    const hearts = ['❤️', '💖', '💗', '💓', '💕'];
+    const count = 6 + Math.floor(Math.random() * 5); // 随机 6~10 个
+    for (let i = 0; i < count; i++) {
+      const frag = document.createElement('div');
+      frag.className = 'fragment';
+      frag.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+      frag.style.left = `${centerX}px`;
+      frag.style.top = `${centerY}px`;
+      frag.style.fontSize = `${Math.random() * 16 + 12}px`; // 随机大小
+      document.body.appendChild(frag);
+
+      // 随机飞散方向和距离
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 40 + Math.random() * 120;
+      const dx = Math.cos(angle) * distance;
+      const dy = Math.sin(angle) * distance;
+
+      // 使用 Web Animations API 动画飞散
+      frag.animate([
+        { left: `${centerX}px`, top: `${centerY}px`, opacity: 1 },
+        { left: `${centerX + dx}px`, top: `${centerY + dy}px`, opacity: 0 }
+      ], {
+        duration: 400 + Math.random() * 300, // 动画时长 0.4~0.7 秒
+        easing: 'cubic-bezier(0.2, 0.8, 0.4, 1)' // 弹性缓动
+      });
+
+      // 0.8 秒后移除碎片 DOM，防止内存堆积
+      setTimeout(() => frag.remove(), 800);
+    }
+  }
+
+  // 开始一轮弹窗
+  function startRound() {
+    // 隐藏重启提示层
+    restartPrompt.classList.remove('show');
+
+    // 清空当前弹窗列表
+    currentPopups = [];
+
+    // 创建 MAX_POPUPS 个弹窗，每隔 INTERVAL 毫秒一个
+    for (let i = 0; i < MAX_POPUPS; i++) {
+      setTimeout(() => {
+        // 随机选择一句语录和背景色
+        const tip = tips[Math.floor(Math.random() * tips.length)];
+        const bgColor = bgColors[Math.floor(Math.random() * bgColors.length)];
+
+        // 创建弹窗 DOM
+        const popup = document.createElement('div');
+        popup.className = 'popup';
+        popup.innerHTML = `
+          <div class="content" style="background-color: ${bgColor};">${tip}</div>
+          <button class="ok-btn">好的</button>
+        `;
+
+        // 随机位置（避免超出屏幕）
+        const maxX = window.innerWidth - 280;
+        const maxY = window.innerHeight - 160;
+        const x = Math.max(5, Math.random() * Math.max(10, maxX));
+        const y = Math.max(5, Math.random() * Math.max(10, maxY));
+        popup.style.left = `${x}px`;
+        popup.style.top = `${y}px`;
+
+        // 添加到页面并记录
+        document.body.appendChild(popup);
+        currentPopups.push(popup);
+
+        // 绑定“好的”按钮点击事件
+        popup.querySelector('.ok-btn').addEventListener('click', () => {
+          explode(popup); // 点击立即爆炸
+        });
+      }, i * INTERVAL);
+    }
+
+    // 等所有弹窗创建完毕后，开始消失流程
+    setTimeout(() => {
+      setTimeout(() => {
+        let disappearCount = 0;
+        const total = currentPopups.length;
+
+        // 如果没有弹窗（极端情况），直接显示提示
+        if (total === 0) {
+          showRestartPrompt();
+          return;
+        }
+
+        // 逐个爆炸消失
+        currentPopups.forEach((popup, idx) => {
+          setTimeout(() => {
+            if (popup.parentNode) {
+              explode(popup, () => {
+                disappearCount++;
+                // 当最后一个弹窗消失时，显示重启提示
+                if (disappearCount === total) {
+                  showRestartPrompt();
+                }
+              });
+            } else {
+              // 如果已被手动关闭，也计入总数
+              disappearCount++;
+              if (disappearCount === total) {
+                showRestartPrompt();
+              }
+            }
+          }, idx * DISAPPEAR_INTERVAL);
+        });
+      }, SHOW_DURATION); // 先展示 SHOW_DURATION 毫秒
+    }, MAX_POPUPS * INTERVAL + 100); // 确保所有弹窗已创建完毕
+  }
+
+  // 显示重启提示
+  function showRestartPrompt() {
+    setTimeout(() => {
+      restartPrompt.classList.add('show'); // 添加 show 类触发动画
+    }, 500); // 等待最后的心形飞完
+  }
+
+  // 绑定重启按钮点击事件
+  restartBtn.addEventListener('click', startRound);
+
+  // 绑定整个 body 点击事件（实现 anywhere 点击重启）
+  document.body.addEventListener('click', (e) => {
+    if (restartPrompt.classList.contains('show')) {
+      startRound(); // 只有在提示层显示时才重启
+    }
+  });
+
+  // 页面加载后自动开始第一轮
+  startRound();
+</script>
+<!-- 背景音乐控制 -->
+<audio id="bg-music" loop>
+  <!-- 如果用在线音乐，替换 src 为在线链接 -->
+  <source src="love.mp3" type="audio/mpeg">
+  <!-- 如果用本地音乐，写成：src="love.mp3" -->
+  Your browser does not support the audio element.
+</audio>
+
+<!-- 音乐开关按钮 -->
+<div id="music-toggle" title="点击开关背景音乐">
+  🔇
+</div>
+
+<style>
+  /* 音乐按钮样式 */
+  #music-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 200;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    transition: transform 0.2s;
+  }
+  #music-toggle:hover {
+    transform: scale(1.1);
+  }
+</style>
+
+<script>
+  // 音乐控制逻辑
+  document.addEventListener('DOMContentLoaded', () => {
+    const audio = document.getElementById('bg-music');
+    const toggleBtn = document.getElementById('music-toggle');
+
+    // 尝试自动播放（现代浏览器需用户交互后才能播）
+    function tryPlay() {
+      audio.play().then(() => {
+        toggleBtn.textContent = '🔊'; // 播放中
+      }).catch(() => {
+        toggleBtn.textContent = '🔇'; // 未播放（需用户点击）
+      });
+    }
+
+    // 页面加载时尝试播放
+    tryPlay();
+
+    // 点击按钮开关音乐
+    toggleBtn.addEventListener('click', () => {
+      if (audio.paused) {
+        audio.play();
+        toggleBtn.textContent = '🔊';
+      } else {
+        audio.pause();
+        toggleBtn.textContent = '🔇';
+      }
+    });
+
+    // 监听播放状态变化（比如被浏览器阻止）
+    audio.addEventListener('play', () => {
+      toggleBtn.textContent = '🔊';
+    });
+    audio.addEventListener('pause', () => {
+      toggleBtn.textContent = '🔇';
+    });
+  });
+</script>
+
+</body>
+</html>
